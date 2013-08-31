@@ -12,9 +12,7 @@ console.log('loading', batches, 'batches of', size)
 
 var db = level(path.join(process.cwd(), 'test.db'), {
   writeBufferSize: 1024 * 1024 * bufferSize
-})
-
-load()
+}, load)
 
 function load() {
   batches--
@@ -24,18 +22,12 @@ function load() {
 
 function putBatch(cb) {
   console.time('batch of ' + size)
-  var pending = 0
-  for (var i = 0; i < size; i++) {
-    pending++
-    db.put(i + '-' + +new Date(), data, function(err) {
-      if (err) console.error(err)
-      pending--
-      if (pending === 0) {
-        console.timeEnd('batch of ' + size)
-        cb()
-      }
-    })
-  }
+  var batch = db.batch()
+  for (var i = 0; i < size; i++) batch.put(i + '-' + +new Date(), data)
+  batch.write(function() {
+    console.timeEnd('batch of ' + size)
+    cb()
+  })
 }
 
 
