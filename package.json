@@ -1,16 +1,22 @@
 {
   "name": "level-bulk-load",
-  "version": "0.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "leveldb bulk loading approaches",
   "main": "insert-junk-data.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "bin": {
+    "level-batch": "cli.js"
   },
-  "author": "",
+  "scripts": {
+    "import-flights": "curl http://stat-computing.org/dataexpo/2009/1988.csv.bz2 | bzip2 -d | ldjson-csv | node cli.js"
+  },
+  "author": "max ogden",
   "license": "BSD",
   "dependencies": {
     "level": "0.15.0",
     "optimist": "~0.6.0",
-    "stats-lite": "~1.0.0"
+    "stats-lite": "~1.0.0",
+    "ldjson-stream": "0.0.1",
+    "hat": "0.0.3",
+    "stream-combiner": "0.0.2"
   }
 }

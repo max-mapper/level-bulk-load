@@ -70,5 +70,3 @@ function putBatch(cb) {
     cb()
   })
 }
-
-
