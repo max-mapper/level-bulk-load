@@ -30,3 +30,4 @@ There are a few options to let you tune your load test:
   * -b number of batches to insert (default: 25)
   * -l length of each record to insert (default: 10250)
   * -m writeBufferSize in MB (default: 16)
+  * -n number of records per batch (default: `Math.floor(writeBufferSize * 1024 * 1024 / length)`)

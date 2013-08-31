@@ -25,7 +25,7 @@ if (recordLength > data.length) {
   data = copy
 }
 
-var size = Math.floor(writeBufferSize / recordLength)
+var size = +argv.n || Math.floor(writeBufferSize / recordLength)
 
 var dataBuffer = new Buffer(data)
 function next() {
