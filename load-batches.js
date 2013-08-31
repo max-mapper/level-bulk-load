@@ -1,6 +1,7 @@
 var level = require('level')
 var fs = require('fs')
 var path = require('path')
+var stats = require('stats-lite')
 
 var data = fs.readFileSync(path.join(__dirname, '10kilobytesof.json')).toString()
 
@@ -44,16 +45,28 @@ var db = level(path.join(process.cwd(), 'test.db'), {
 
 function load() {
   batches--
-  if (batches <= 0) return
+  if (batches <= 0) {
+    console.log("max: %s", Math.max.apply(null, runs))
+    console.log("avg: %s", stats.mean(runs))
+    console.log("std dev: %s", stats.stdev(runs))
+    console.log("25th percentile: %s", stats.percentile(runs, 0.25))
+    console.log("median: %s", stats.median(runs))
+    console.log("75th percentile: %s", stats.percentile(runs, 0.75))
+    return
+  }
   putBatch(load)
 }
 
+var runs = []
 function putBatch(cb) {
+  var start = Date.now()
   console.time('batch of ' + size)
   var batch = db.batch()
   for (var i = 0; i < size; i++) batch.put(i + '-' + Date.now(), next())
   batch.write(function() {
     console.timeEnd('batch of ' + size)
+    var elapsed = Date.now() - start
+    runs.push(elapsed)
     cb()
   })
 }
