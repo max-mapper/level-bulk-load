@@ -1,0 +1,14 @@
+{
+  "name": "level-bulk-load",
+  "version": "0.0.0",
+  "description": "",
+  "main": "insert-junk-data.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "BSD",
+  "dependencies": {
+    "level": "0.15.0"
+  }
+}
