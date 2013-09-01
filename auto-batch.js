@@ -24,30 +24,44 @@ module.exports = function(opts, cb) {
     // simplest way to get object size?
     var obj = JSON.stringify(obj)
     var len = obj.length
-    console.log(len, size, opts.writeBufferSize, batchPending)
     if (!currentBatch) currentBatch = db.batch()
     // keep batches under write buffer size
     if (!batchPending && ((size + len) >= opts.writeBufferSize)) {
       // if single obj is bigger than write buffer
-      if (size === 0) currentBatch.put(uuid(), obj)
-      commit()
+      if (size === 0) {
+        console.log('big single obj', obj)
+        currentBatch.put(uuid(), obj)
+      }
+      
+      // ops length check is to prevent commit from firing multiple times
+      // i'm not sure how batchPending is never true...
+      console.log('batch filled from new obj', size, len)
+      if (currentBatch.ops.length > 0) commit()
     } else {
       // try to fill up the batch from queued objs
       for (var i = 0; i < pending.length; ++i) {
         if (batchPending) continue
         var data = pending.shift()
         currentBatch.put(uuid(), data.obj)
+        console.log('put from pending')
         size += data.len
         if (size >= opts.writeBufferSize) {
+          console.log('batch filled from pending obj')
           commit()
         }
       }
       if (batchPending) {
+        // queue incoming object
         pending.push({len: len, obj: obj})
+        console.log('pending length:', pending.length)
       } else {
         currentBatch.put(uuid(), obj)
         size += len
-        if (size >= opts.writeBufferSize) commit()
+        console.log('put from new, new size:', size)
+        if (size >= opts.writeBufferSize) {
+          console.log('batch filled from new obj + pending')
+          commit()
+        }
       }
     }
   }
@@ -70,11 +84,12 @@ module.exports = function(opts, cb) {
     
   function commit(cb) {
     batchPending = true
-    console.time('pendingbatch')
+    console.time('batch time')
     batcher.pause()
-    console.log('writing batch length', currentBatch.ops.length, 'size', size)
-    currentBatch.write(function() {
-      console.timeEnd('pendingbatch')
+    console.log('num rows:', currentBatch.ops.length, 'bytes:', size)
+    currentBatch.write(function(err) {
+      if (err) console.log('batch err', err)
+      console.timeEnd('batch time')
       currentBatch = undefined
       batchPending = false
       batcher.resume()
