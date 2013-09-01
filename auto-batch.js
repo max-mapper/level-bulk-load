@@ -6,13 +6,12 @@ var uuid = require('hat')
 
 module.exports = function(opts, cb) {
   if (!opts) opts = {
-    writeBufferSize: 1024 * 1024 * 1, // default in leveldown
-    blockSize: 4096 // default in leveldown
+    writeBufferSize: 1024 * 1024 * 16, // mb
+    blockSize: 1024 * 64 // kb
   }
   
   var currentBatch
   var batchPending = false
-  var pending = []
   var size = 0
   var batcher = through(batch, finish)
   var parser = combiner(ldjstream.parse(), batcher)
@@ -35,44 +34,16 @@ module.exports = function(opts, cb) {
       
       // ops length check is to prevent commit from firing multiple times
       // i'm not sure how batchPending is never true...
-      console.log('batch filled from new obj', size, len)
       if (currentBatch.ops.length > 0) commit()
     } else {
-      // try to fill up the batch from queued objs
-      for (var i = 0; i < pending.length; ++i) {
-        if (batchPending) continue
-        var data = pending.shift()
-        currentBatch.put(uuid(), data.obj)
-        console.log('put from pending')
-        size += data.len
-        if (size >= opts.writeBufferSize) {
-          console.log('batch filled from pending obj')
-          commit()
-        }
-      }
-      if (batchPending) {
-        // queue incoming object
-        pending.push({len: len, obj: obj})
-        console.log('pending length:', pending.length)
-      } else {
-        currentBatch.put(uuid(), obj)
-        size += len
-        console.log('put from new, new size:', size)
-        if (size >= opts.writeBufferSize) {
-          console.log('batch filled from new obj + pending')
-          commit()
-        }
-      }
+      currentBatch.put(uuid(), obj)
+      size += len
     }
   }
   
   function finish() {
     var self = this
     if (currentBatch) {
-      for (var i = 0; i < pending.length; ++i) {
-        var data = pending.shift()
-        currentBatch.put(uuid(), data.obj)
-      }
       commit(function() {
         self.queue(null)
       })
@@ -81,19 +52,18 @@ module.exports = function(opts, cb) {
     }
   }
   
-    
   function commit(cb) {
     batchPending = true
-    console.time('batch time')
+    var time = +new Date()
+    var stats = ', rows: ' + currentBatch.ops.length + ', bytes: ' + size
     batcher.pause()
-    console.log('num rows:', currentBatch.ops.length, 'bytes:', size)
     currentBatch.write(function(err) {
       if (err) console.log('batch err', err)
-      console.timeEnd('batch time')
+      console.log('batch time: ' + (+new Date() - time) + 'ms' + stats)
       currentBatch = undefined
       batchPending = false
-      batcher.resume()
       size = 0
+      batcher.resume()
       if (cb) cb()
     })
   }
